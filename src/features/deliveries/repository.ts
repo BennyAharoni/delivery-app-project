@@ -9,6 +9,16 @@ export type DeliveryStatus =
   | 'failed'
   | 'cancelled';
 
+const allowedStatusTransitions: Record<DeliveryStatus, DeliveryStatus[]> = {
+  pending: ['assigned', 'cancelled'],
+  assigned: ['picked_up', 'failed', 'cancelled'],
+  picked_up: ['out_for_delivery', 'failed'],
+  out_for_delivery: ['delivered', 'failed'],
+  delivered: [],
+  failed: ['assigned', 'cancelled'],
+  cancelled: [],
+};
+
 export type Delivery = {
   id: string;
   tracking_number: string;
@@ -47,12 +57,23 @@ export type DeliveryStatusHistory = {
   created_at: string | null;
 };
 
-export async function createDeliveryStatusHistory(input: {
+export type UpdateDeliveryStatusInput = {
   delivery_id: string;
   status: DeliveryStatus;
   changed_by?: string;
   note?: string;
-}): Promise<DeliveryStatusHistory> {
+};
+
+export type CreateDeliveryStatusHistoryInput = {
+  delivery_id: string;
+  status: DeliveryStatus;
+  changed_by?: string | null;
+  note?: string | null;
+};
+
+export async function createDeliveryStatusHistory(
+  input: CreateDeliveryStatusHistoryInput,
+): Promise<DeliveryStatusHistory> {
   const supabase = createSupabaseServerClient();
 
   const { data, error } = await supabase
@@ -165,4 +186,55 @@ export async function listDeliveryStatusHistory(
   }
 
   return (data ?? []) as DeliveryStatusHistory[];
+}
+
+function isValidStatusTransition(
+  currentStatus: DeliveryStatus,
+  nextStatus: DeliveryStatus,
+): boolean {
+  return allowedStatusTransitions[currentStatus].includes(nextStatus);
+}
+
+export async function updateDeliveryStatus(
+  input: UpdateDeliveryStatusInput,
+): Promise<Delivery> {
+  const supabase = createSupabaseServerClient();
+
+  const currentDelivery = await getDeliveryById(input.delivery_id);
+
+  if (!currentDelivery) {
+    throw new Error('Delivery not found');
+  }
+
+  const currentStatus = currentDelivery.status;
+
+  if (!isValidStatusTransition(currentStatus, input.status)) {
+    throw new Error(
+      `Invalid status transition from '${currentStatus}' to '${input.status}'`,
+    );
+  }
+
+  const { data, error } = await supabase
+    .from('deliveries')
+    .update({
+      status: input.status,
+    })
+    .eq('id', input.delivery_id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update delivery status: ${error.message}`);
+  }
+
+  const updatedDelivery = data as Delivery;
+
+  await createDeliveryStatusHistory({
+    delivery_id: input.delivery_id,
+    status: input.status,
+    changed_by: input.changed_by ?? null,
+    note: input.note ?? null,
+  });
+
+  return updatedDelivery;
 }
