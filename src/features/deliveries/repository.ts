@@ -35,6 +35,13 @@ export type Delivery = {
   updated_at: string | null;
 };
 
+export function formatStatus(status: string): string {
+  return status
+    .split('_')
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 export type CreateDeliveryInput = {
   tracking_number: string;
   customer_name: string;
