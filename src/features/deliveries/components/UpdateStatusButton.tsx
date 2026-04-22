@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   allowedStatusTransitions,
   DeliveryStatus,
@@ -36,6 +37,8 @@ export function UpdateStatusButton({
     nextStatuses[0] ?? '',
   );
 
+  const router = useRouter();
+
   async function handleUpdate() {
     if (!selectedStatus) {
       setError('Please select a status');
@@ -65,7 +68,8 @@ export function UpdateStatusButton({
         throw new Error(data.error || 'Failed to update status');
       }
 
-      window.location.reload();
+      //   window.location.reload();
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
