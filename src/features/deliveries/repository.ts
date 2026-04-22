@@ -9,7 +9,10 @@ export type DeliveryStatus =
   | 'failed'
   | 'cancelled';
 
-const allowedStatusTransitions: Record<DeliveryStatus, DeliveryStatus[]> = {
+export const allowedStatusTransitions: Record<
+  DeliveryStatus,
+  DeliveryStatus[]
+> = {
   pending: ['assigned', 'cancelled'],
   assigned: ['picked_up', 'failed', 'cancelled'],
   picked_up: ['out_for_delivery', 'failed'],
@@ -195,7 +198,7 @@ export async function listDeliveryStatusHistory(
   return (data ?? []) as DeliveryStatusHistory[];
 }
 
-function isValidStatusTransition(
+export function isValidStatusTransition(
   currentStatus: DeliveryStatus,
   nextStatus: DeliveryStatus,
 ): boolean {

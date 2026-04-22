@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { UpdateStatusButton } from '@/features/deliveries/components/UpdateStatusButton';
+import { getFirstProfile } from '@/features/profiles/repository';
 import {
   getDeliveryById,
   listDeliveryStatusHistory,
@@ -16,6 +18,7 @@ export default async function DeliveryDetailsPage(
 ) {
   const params = await props.params;
   const delivery = await getDeliveryById(params.id);
+  const profile = await getFirstProfile();
 
   if (!delivery) {
     return (
@@ -38,6 +41,15 @@ export default async function DeliveryDetailsPage(
 
       <section style={{ marginTop: '24px' }}>
         <h2>Delivery Info</h2>
+
+        {profile && (
+          <UpdateStatusButton
+            deliveryId={delivery.id}
+            currentStatus={delivery.status}
+            profileId={profile.id}
+          />
+        )}
+
         <table
           style={{
             borderCollapse: 'collapse',
